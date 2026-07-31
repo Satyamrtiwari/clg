@@ -34,6 +34,16 @@ async def get_display_orders(db: AsyncSession = Depends(get_db)):
     """Public endpoint for customer display TV screen"""
     return await OrderService.get_active_orders_for_display(db)
 
+@router.get("/queue", response_model=List[OrderRead])
+async def list_orders_queue(
+    target_date: Optional[date] = Query(None),
+    status_filter: Optional[OrderStatus] = Query(None),
+    search: Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    return await OrderService.get_orders(db, target_date=target_date, status_filter=status_filter, search=search)
+
 @router.get("", response_model=List[OrderRead])
 async def list_orders(
     target_date: Optional[date] = Query(None),

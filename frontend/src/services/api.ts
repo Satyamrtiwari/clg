@@ -65,11 +65,11 @@ export const ordersApi = {
     return res.data;
   },
   getOrderQueue: async (params?: any): Promise<Order[]> => {
-    const res = await api.get('/orders/queue', { params });
+    const res = await api.get('/orders', { params });
     return res.data;
   },
   getOrders: async (params?: any): Promise<Order[]> => {
-    const res = await api.get('/orders/queue', { params });
+    const res = await api.get('/orders', { params });
     return res.data;
   },
   getDisplayOrders: async (): Promise<Order[]> => {
