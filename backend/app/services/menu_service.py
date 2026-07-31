@@ -63,19 +63,7 @@ class MenuService:
         await db.refresh(category)
         return category
 
-    @staticmethod
-    async def delete_category(db: AsyncSession, category_id: str) -> bool:
-        stmt = select(Category).where(Category.id == category_id)
-        res = await db.execute(stmt)
-        category = res.scalar_one_or_none()
-        if not category:
-            raise HTTPException(status_code=404, detail="Category not found")
-        
-        await db.delete(category)
-        await db.commit()
-        return True
-
-    # MenuItem CRUD
+    # Menu Item CRUD
     @staticmethod
     async def get_menu_items(
         db: AsyncSession,
@@ -139,3 +127,15 @@ class MenuService:
         await db.commit()
         await db.refresh(menu_item)
         return menu_item
+
+    @staticmethod
+    async def delete_menu_item(db: AsyncSession, item_id: str) -> bool:
+        stmt = select(MenuItem).where(MenuItem.id == item_id)
+        res = await db.execute(stmt)
+        menu_item = res.scalar_one_or_none()
+        if not menu_item:
+            raise HTTPException(status_code=404, detail="Menu item not found")
+
+        await db.delete(menu_item)
+        await db.commit()
+        return True

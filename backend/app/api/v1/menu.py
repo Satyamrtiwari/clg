@@ -64,3 +64,12 @@ async def toggle_item_availability(
     current_user: User = Depends(verify_menu_edit_permission)
 ):
     return await MenuService.toggle_availability(db, item_id)
+
+@router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_menu_item(
+    item_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(verify_menu_edit_permission)
+):
+    await MenuService.delete_menu_item(db, item_id)
+    return None

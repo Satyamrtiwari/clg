@@ -5,7 +5,7 @@ import { MenuItem, Category } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
-import { Plus, Edit, Sparkles, FolderPlus, Clock, Calendar, Upload, Image as ImageIcon, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Plus, Edit, Sparkles, FolderPlus, Clock, Calendar, Upload, Image as ImageIcon, CheckCircle2, AlertCircle, Trash2 } from 'lucide-react';
 
 const DAYS_OF_WEEK = [
   { id: 'MONDAY', label: 'Mon' },
@@ -45,6 +45,7 @@ export const MenuManagementPage: React.FC = () => {
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [isSubmittingItem, setIsSubmittingItem] = useState(false);
   const [isSubmittingCat, setIsSubmittingCat] = useState(false);
+  const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -64,6 +65,27 @@ export const MenuManagementPage: React.FC = () => {
     mutationFn: (id: string) => menuApi.toggleAvailability(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['menu'] }),
   });
+
+  // Delete Menu Item Handler
+  const handleDeleteItem = async (itemId: string, itemName: string) => {
+    if (!window.confirm(`Are you sure you want to delete "${itemName}" from the menu?`)) {
+      return;
+    }
+
+    setDeletingItemId(itemId);
+    setActionError(null);
+    try {
+      await menuApi.deleteMenuItem(itemId);
+      await queryClient.invalidateQueries({ queryKey: ['menu'] });
+      setIsItemModalOpen(false);
+      setActionSuccess(`"${itemName}" deleted successfully!`);
+      setTimeout(() => setActionSuccess(null), 4000);
+    } catch (err: any) {
+      setActionError(err.response?.data?.detail || 'Failed to delete menu item');
+    } finally {
+      setDeletingItemId(null);
+    }
+  };
 
   // Handle Image File Upload
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -96,7 +118,6 @@ export const MenuManagementPage: React.FC = () => {
 
   const handleOpenItemModal = (item?: MenuItem) => {
     setActionError(null);
-    setActionSuccess(null);
     if (item) {
       setEditingItem(item);
       setName(item.name);
@@ -128,7 +149,6 @@ export const MenuManagementPage: React.FC = () => {
   const handleSaveItem = async (e: React.FormEvent) => {
     e.preventDefault();
     setActionError(null);
-    setActionSuccess(null);
 
     if (!name.trim()) {
       setActionError('Please enter an item name');
@@ -160,15 +180,17 @@ export const MenuManagementPage: React.FC = () => {
 
       if (editingItem) {
         await menuApi.updateMenuItem(editingItem.id, payload);
-        setActionSuccess('Menu item updated!');
+        setActionSuccess(`Item "${name.trim()}" updated successfully!`);
       } else {
         await menuApi.createMenuItem(payload);
-        setActionSuccess('Menu item created!');
+        setActionSuccess(`Item "${name.trim()}" created successfully!`);
       }
 
       await queryClient.invalidateQueries({ queryKey: ['menu'] });
+      
+      // Close modal immediately on success
       setIsItemModalOpen(false);
-      setTimeout(() => setActionSuccess(null), 3000);
+      setTimeout(() => setActionSuccess(null), 4000);
     } catch (err: any) {
       setActionError(err.response?.data?.detail || 'Failed to save menu item');
     } finally {
@@ -179,7 +201,6 @@ export const MenuManagementPage: React.FC = () => {
   const handleSaveCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     setActionError(null);
-    setActionSuccess(null);
 
     if (!categoryName.trim()) {
       setActionError('Category name is required');
@@ -201,11 +222,12 @@ export const MenuManagementPage: React.FC = () => {
         setSelectedCategoryId(newCat.id);
       }
 
+      // Close modal immediately on success
       setIsCategoryModalOpen(false);
       setCategoryName('');
       setCategoryDesc('');
-      setActionSuccess(`Category "${newCat.name}" created!`);
-      setTimeout(() => setActionSuccess(null), 3000);
+      setActionSuccess(`Category "${newCat.name}" created successfully!`);
+      setTimeout(() => setActionSuccess(null), 4000);
     } catch (err: any) {
       setActionError(err.response?.data?.detail || 'Failed to create category');
     } finally {
@@ -242,13 +264,13 @@ export const MenuManagementPage: React.FC = () => {
 
       {/* Action Notification Banner */}
       {actionSuccess && (
-        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 shrink-0" /> {actionSuccess}
+        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-sm font-bold flex items-center gap-2 shadow-sm animate-fadeIn">
+          <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-500" /> {actionSuccess}
         </div>
       )}
       {actionError && (
-        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-bold flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0" /> {actionError}
+        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-sm font-bold flex items-center gap-2 shadow-sm animate-fadeIn">
+          <AlertCircle className="w-5 h-5 shrink-0 text-rose-500" /> {actionError}
         </div>
       )}
 
@@ -323,10 +345,10 @@ export const MenuManagementPage: React.FC = () => {
               <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
                 <span className="text-lg font-extrabold text-slate-900 dark:text-white font-display">₹{item.price}</span>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => toggleAvailabilityMutation.mutate(item.id)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors ${
+                    className={`px-2 py-1 rounded-lg text-xs font-bold transition-colors ${
                       item.is_available
                         ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
                         : 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/30'
@@ -338,8 +360,18 @@ export const MenuManagementPage: React.FC = () => {
                   <button
                     onClick={() => handleOpenItemModal(item)}
                     className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                    title="Edit Item"
                   >
                     <Edit className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    onClick={() => handleDeleteItem(item.id, item.name)}
+                    disabled={deletingItemId === item.id}
+                    className="p-1.5 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-600 hover:text-white transition-colors"
+                    title="Delete Item"
+                  >
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -489,9 +521,22 @@ export const MenuManagementPage: React.FC = () => {
             </label>
           </div>
 
-          <Button type="submit" size="lg" className="w-full" isLoading={isSubmittingItem}>
-            {editingItem ? 'Save Changes' : 'Create Item'}
-          </Button>
+          <div className="flex items-center gap-3 pt-2">
+            {editingItem && (
+              <button
+                type="button"
+                onClick={() => handleDeleteItem(editingItem.id, editingItem.name)}
+                disabled={deletingItemId === editingItem.id}
+                className="px-4 py-3 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 font-bold text-sm hover:bg-rose-600 hover:text-white transition-colors flex items-center gap-2 border border-rose-500/30"
+              >
+                <Trash2 className="w-4 h-4" /> Delete Item
+              </button>
+            )}
+
+            <Button type="submit" size="lg" className="flex-1" isLoading={isSubmittingItem}>
+              {editingItem ? 'Save Changes' : 'Create Item'}
+            </Button>
+          </div>
         </form>
       </Modal>
 

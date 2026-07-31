@@ -42,9 +42,9 @@ export const OrderQueuePage: React.FC = () => {
     updateStatusMutation.mutate({ orderId, status });
   };
 
-  const preparingOrders = orders.filter((o) => o.status === 'PREPARING');
-  const readyOrders = orders.filter((o) => o.status === 'READY');
-  const otherOrders = orders.filter((o) => !['PREPARING', 'READY'].includes(o.status));
+  const preparingOrders = orders.filter((o: Order) => o.status === 'PREPARING');
+  const readyOrders = orders.filter((o: Order) => o.status === 'READY');
+  const otherOrders = orders.filter((o: Order) => !['PREPARING', 'READY'].includes(o.status));
 
   const renderOrderCard = (order: Order) => (
     <div

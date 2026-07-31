@@ -41,6 +41,9 @@ export const menuApi = {
     const res = await api.patch(`/menu/${id}/toggle-availability`);
     return res.data;
   },
+  deleteMenuItem: async (id: string): Promise<void> => {
+    await api.delete(`/menu/${id}`);
+  },
   uploadImage: async (file: File): Promise<{ image_url: string }> => {
     const formData = new FormData();
     formData.append('file', file);
@@ -61,31 +64,39 @@ export const ordersApi = {
     const res = await api.post('/orders', data);
     return res.data;
   },
-  updateStatus: async (orderId: string, status: string): Promise<Order> => {
-    const res = await api.patch(`/orders/${orderId}/status`, { status });
+  getOrderQueue: async (params?: any): Promise<Order[]> => {
+    const res = await api.get('/orders/queue', { params });
+    return res.data;
+  },
+  getOrders: async (params?: any): Promise<Order[]> => {
+    const res = await api.get('/orders/queue', { params });
     return res.data;
   },
   getDisplayOrders: async (): Promise<Order[]> => {
     const res = await api.get('/orders/display');
     return res.data;
   },
-  getOrders: async (params?: { target_date?: string; status_filter?: string; search?: string }): Promise<Order[]> => {
-    const res = await api.get('/orders', { params });
+  updateOrderStatus: async (id: string, status: string): Promise<Order> => {
+    const res = await api.patch(`/orders/${id}/status`, { status });
+    return res.data;
+  },
+  updateStatus: async (id: string, status: string): Promise<Order> => {
+    const res = await api.patch(`/orders/${id}/status`, { status });
     return res.data;
   },
 };
 
 export const settingsApi = {
+  getAll: async () => {
+    const res = await api.get('/settings');
+    return res.data;
+  },
   getConfig: async (): Promise<SystemConfig> => {
     const res = await api.get('/settings/config');
     return res.data;
   },
-  getAllSettings: async () => {
-    const res = await api.get('/settings');
-    return res.data;
-  },
-  updateSetting: async (key: string, value: Record<string, any>) => {
-    const res = await api.put(`/settings/${key}`, { value });
+  updateSetting: async (key: string, value: any) => {
+    const res = await api.put(`/settings/${key}`, value);
     return res.data;
   },
 };
