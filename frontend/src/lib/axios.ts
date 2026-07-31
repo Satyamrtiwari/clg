@@ -34,10 +34,13 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Clear token on 401 if not logging in
+      // Clear stale token on 401 if not logging in
       if (!error.config?.url?.includes('/auth/login')) {
         localStorage.removeItem('access_token');
         localStorage.removeItem('user_data');
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
       }
     }
     return Promise.reject(error);

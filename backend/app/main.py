@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.core.database import engine, Base, AsyncSessionLocal
 from app.api.v1.router import api_router
+from app.api.v1.websockets import router as ws_router
 from app.utils.seed_data import seed_initial_data
 
 @asynccontextmanager
@@ -41,8 +42,9 @@ app.add_middleware(
 os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
 
-# Include API v1 Router
+# Include API v1 Router & Root WebSocket Router
 app.include_router(api_router, prefix=settings.API_V1_STR)
+app.include_router(ws_router)
 
 @app.get("/health")
 async def health_check():
