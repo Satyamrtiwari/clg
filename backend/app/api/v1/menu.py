@@ -12,7 +12,8 @@ from app.services.setting_service import SettingService
 router = APIRouter(prefix="/menu", tags=["Menu Items"])
 
 async def verify_menu_edit_permission(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    if current_user.role.name == "ADMIN":
+    role_name = str(current_user.role.name).upper() if (current_user and current_user.role and current_user.role.name) else ""
+    if role_name == "ADMIN":
         return current_user
     
     # Check cashier permissions setting

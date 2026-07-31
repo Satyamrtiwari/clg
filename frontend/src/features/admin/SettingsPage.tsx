@@ -11,7 +11,7 @@ export const SettingsPage: React.FC = () => {
   const [currencySymbol, setCurrencySymbol] = useState('₹');
   const [taxRate, setTaxRate] = useState('5.0');
   const [autoRemoveMins, setAutoRemoveMins] = useState('5');
-  const [canEditMenu, setCanEditMenu] = useState(false);
+  const [canEditMenu, setCanEditMenu] = useState(true);
   const [customDomain, setCustomDomain] = useState('');
   const [qrIntervalSecs, setQrIntervalSecs] = useState('30');
   

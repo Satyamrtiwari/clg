@@ -184,7 +184,7 @@ async def seed_initial_data(db: AsyncSession):
             Setting(
                 key="cashier_permissions",
                 value={
-                    "can_edit_menu": False,
+                    "can_edit_menu": True,
                     "can_cancel_order": True,
                     "can_give_discount": True
                 },

@@ -45,13 +45,16 @@ class SettingService:
         currency_symbol = settings_map.get("currency_symbol", {}).get("value", "₹")
         qr_interval = settings_map.get("qr_display_interval_seconds", {}).get("value", 30)
         cashier_perms = settings_map.get("cashier_permissions", {})
+        
+        # Default can_edit_menu to True if not explicitly set to False
+        can_edit = cashier_perms.get("can_edit_menu", True) if isinstance(cashier_perms, dict) else True
 
         return SystemConfigSummary(
             auto_remove_minutes=int(auto_remove),
             tax_rate_percent=float(tax_rate),
             canteen_name=str(canteen_name),
             currency_symbol=str(currency_symbol),
-            cashier_can_edit_menu=bool(cashier_perms.get("can_edit_menu", False)),
-            cashier_can_cancel_order=bool(cashier_perms.get("can_cancel_order", True)),
+            cashier_can_edit_menu=bool(can_edit),
+            cashier_can_cancel_order=bool(cashier_perms.get("can_cancel_order", True) if isinstance(cashier_perms, dict) else True),
             qr_display_interval_seconds=int(qr_interval)
         )
