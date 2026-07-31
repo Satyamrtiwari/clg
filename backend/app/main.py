@@ -20,7 +20,6 @@ async def lifespan(app: FastAPI):
         await seed_initial_data(db)
         
     yield
-    # Shutdown logic if needed
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -29,15 +28,14 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Set CORS middleware
-if settings.BACKEND_CORS_ORIGINS:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.BACKEND_CORS_ORIGINS,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+# Set CORS middleware for Vercel & local development
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Static files for product image uploads
 os.makedirs(settings.UPLOAD_DIR, exist_ok=True)

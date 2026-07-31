@@ -11,12 +11,20 @@ export const useWebSocket = (channel: string = 'display', onEvent?: (event: WSEv
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  const getWSUrl = useCallback(() => {
+    const envApiUrl = import.meta.env.VITE_API_BASE_URL;
+    if (envApiUrl && envApiUrl.trim().startsWith('http')) {
+      const wsBase = envApiUrl.trim().replace(/^http/, 'ws').replace(/\/api\/v1\/?$/, '');
+      return `${wsBase}/ws/${channel}`;
+    }
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.host;
+    return `${protocol}//${host}/ws/${channel}`;
+  }, [channel]);
+
   const connect = useCallback(() => {
     try {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const host = window.location.host;
-      const wsUrl = `${protocol}//${host}/ws/${channel}`;
-
+      const wsUrl = getWSUrl();
       const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
@@ -60,7 +68,7 @@ export const useWebSocket = (channel: string = 'display', onEvent?: (event: WSEv
     } catch (err) {
       console.error('WebSocket connection failed:', err);
     }
-  }, [channel, onEvent]);
+  }, [getWSUrl, onEvent]);
 
   useEffect(() => {
     connect();
