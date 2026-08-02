@@ -61,10 +61,12 @@ async def get_current_user(
 
 def require_role(allowed_roles: list[str]):
     async def role_checker(current_user = Depends(get_current_user)):
-        if current_user.role.name not in allowed_roles:
+        user_role = str(current_user.role.name).upper() if (current_user and current_user.role and current_user.role.name) else ""
+        allowed_upper = [r.upper() for r in allowed_roles]
+        if user_role not in allowed_upper:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"User role '{current_user.role.name}' does not have sufficient permissions for this action."
+                detail=f"User role '{user_role}' does not have sufficient permissions for this action."
             )
         return current_user
     return role_checker

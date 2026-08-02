@@ -25,6 +25,9 @@ export const menuApi = {
     const res = await api.put(`/categories/${id}`, data);
     return res.data;
   },
+  deleteCategory: async (id: string): Promise<void> => {
+    await api.delete(`/categories/${id}`);
+  },
   getMenuItems: async (params?: { category_id?: string; search?: string; available_only?: boolean; todays_special_only?: boolean }): Promise<MenuItem[]> => {
     const res = await api.get('/menu', { params });
     return res.data;
@@ -95,8 +98,11 @@ export const settingsApi = {
     const res = await api.get('/settings/config');
     return res.data;
   },
-  updateSetting: async (key: string, value: any) => {
-    const res = await api.put(`/settings/${key}`, value);
+  updateSetting: async (key: string, valueData: any) => {
+    const payload = (valueData !== null && typeof valueData === 'object' && 'value' in valueData)
+      ? valueData
+      : { value: valueData };
+    const res = await api.put(`/settings/${key}`, payload);
     return res.data;
   },
 };

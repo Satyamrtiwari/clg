@@ -11,7 +11,7 @@ class SettingRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 class SettingUpdate(BaseModel):
-    value: Dict[str, Any]
+    value: Any
 
 class SystemConfigSummary(BaseModel):
     auto_remove_minutes: int = 5

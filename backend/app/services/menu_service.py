@@ -2,10 +2,12 @@ from typing import List, Optional
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy import update, delete
 from sqlalchemy.orm import selectinload
 from fastapi import HTTPException, status
 
 from app.models.menu import Category, MenuItem
+from app.models.order import OrderItem
 from app.schemas.menu import CategoryCreate, CategoryUpdate, MenuItemCreate, MenuItemUpdate
 
 class MenuService:
@@ -63,6 +65,34 @@ class MenuService:
         await db.refresh(category)
         return category
 
+    @staticmethod
+    async def delete_category(db: AsyncSession, category_id: str) -> bool:
+        stmt = select(Category).where(Category.id == category_id)
+        res = await db.execute(stmt)
+        category = res.scalar_one_or_none()
+        if not category:
+            raise HTTPException(status_code=404, detail="Category not found")
+
+        # 1. Get menu items under this category
+        items_stmt = select(MenuItem.id).where(MenuItem.category_id == category_id)
+        items_res = await db.execute(items_stmt)
+        item_ids = items_res.scalars().all()
+
+        if item_ids:
+            # 2. Unlink OrderItems referencing these items
+            await db.execute(
+                update(OrderItem).where(OrderItem.menu_item_id.in_(item_ids)).values(menu_item_id=None)
+            )
+            # 3. Delete menu items under this category
+            await db.execute(
+                delete(MenuItem).where(MenuItem.category_id == category_id)
+            )
+
+        # 4. Delete the category
+        await db.delete(category)
+        await db.commit()
+        return True
+
     # Menu Item CRUD
     @staticmethod
     async def get_menu_items(
@@ -97,8 +127,11 @@ class MenuService:
         menu_item = MenuItem(**item_in.model_dump())
         db.add(menu_item)
         await db.commit()
-        await db.refresh(menu_item)
-        return menu_item
+        
+        # Eager load category to avoid response serialization error
+        stmt = select(MenuItem).options(selectinload(MenuItem.category)).where(MenuItem.id == menu_item.id)
+        res = await db.execute(stmt)
+        return res.scalar_one()
 
     @staticmethod
     async def update_menu_item(db: AsyncSession, item_id: str, item_in: MenuItemUpdate) -> MenuItem:
@@ -135,6 +168,11 @@ class MenuService:
         menu_item = res.scalar_one_or_none()
         if not menu_item:
             raise HTTPException(status_code=404, detail="Menu item not found")
+
+        # Set OrderItem menu_item_id to None before deleting item
+        await db.execute(
+            update(OrderItem).where(OrderItem.menu_item_id == item_id).values(menu_item_id=None)
+        )
 
         await db.delete(menu_item)
         await db.commit()

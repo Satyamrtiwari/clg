@@ -5,7 +5,6 @@ import { useThemeStore } from '@/store/useThemeStore';
 import { useQuery } from '@tanstack/react-query';
 import { settingsApi } from '@/services/api';
 import {
-  Utensils,
   LayoutDashboard,
   ShoppingCart,
   ListOrdered,
@@ -15,15 +14,15 @@ import {
   QrCode,
   Tv,
   LogOut,
-  Sun,
   Moon,
+  Sparkles,
 } from 'lucide-react';
 
 export const MainLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuthStore();
-  const { theme, toggleTheme } = useThemeStore();
+  const { colorTheme, setTheme } = useThemeStore();
 
   const isAdmin = user?.role?.name === 'ADMIN';
 
@@ -62,14 +61,14 @@ export const MainLayout: React.FC = () => {
       {/* LEFT SIDEBAR NAVIGATION */}
       <aside className="w-64 bg-white dark:bg-slate-900/90 border-r border-slate-200 dark:border-slate-800/80 flex flex-col justify-between p-4 shrink-0 h-screen sticky top-0 shadow-sm dark:shadow-none">
         <div className="space-y-6">
-          {/* Top Branding Section */}
+          {/* Top Branding Section with SJCEM Building Logo Image */}
           <div className="flex items-center gap-3 px-2 py-1">
-            <div className="w-10 h-10 rounded-xl bg-rose-600/10 dark:bg-rose-600/20 border border-rose-500/20 dark:border-rose-500/30 text-rose-600 dark:text-rose-500 flex items-center justify-center shadow-sm shrink-0">
-              <Utensils className="w-5 h-5" />
+            <div className="w-11 h-11 rounded-xl overflow-hidden border border-blue-500/30 text-blue-700 dark:text-blue-400 flex items-center justify-center shadow-md shrink-0 bg-blue-900">
+              <img src="/logo.png" alt="SJCEM Building Logo" className="w-full h-full object-cover" />
             </div>
             <div className="min-w-0">
               <h2 className="font-extrabold text-base text-slate-900 dark:text-white font-display truncate leading-tight">{canteenName}</h2>
-              <p className="text-[11px] font-semibold text-rose-600 dark:text-rose-400">Canteen POS</p>
+              <p className="text-[11px] font-semibold text-blue-700 dark:text-blue-400">Campus Canteen POS</p>
             </div>
           </div>
 
@@ -89,7 +88,7 @@ export const MainLayout: React.FC = () => {
                   }}
                   className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-bold transition-all ${
                     isActive
-                      ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/30'
+                      ? 'bg-blue-700 text-white shadow-lg shadow-blue-700/30'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/60'
                   }`}
                 >
@@ -103,24 +102,41 @@ export const MainLayout: React.FC = () => {
 
         {/* Bottom Theme & User Profile Section */}
         <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
-          {/* Day / Night Theme Toggle Button with Icon */}
-          <button
-            onClick={toggleTheme}
-            className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold transition-colors"
-            title="Toggle Day / Night Mode"
-          >
-            <span className="flex items-center gap-2">
-              {theme === 'light' ? (
-                <Sun className="w-4 h-4 text-amber-500" />
-              ) : (
-                <Moon className="w-4 h-4 text-sky-400" />
-              )}
-              <span>{theme === 'light' ? 'Day Mode ☀️' : 'Night Mode 🌙'}</span>
-            </span>
-            <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700">
-              {theme === 'light' ? 'DAY' : 'NIGHT'}
-            </span>
-          </button>
+          {/* Multi-Theme Preset Selector (Royal Blue / Rose Pink / Night Mode) */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-extrabold uppercase text-slate-400 dark:text-slate-500 tracking-wider flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-blue-500" /> Color Theme
+            </label>
+            <div className="grid grid-cols-3 gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+              <button
+                onClick={() => setTheme('blue')}
+                className={`py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 ${
+                  colorTheme === 'blue' ? 'bg-blue-700 text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+                title="Royal Blue (SJCEM Building)"
+              >
+                <span className="w-2 h-2 rounded-full bg-blue-400"></span> Blue
+              </button>
+              <button
+                onClick={() => setTheme('pink')}
+                className={`py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 ${
+                  colorTheme === 'pink' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+                title="Rose Pink"
+              >
+                <span className="w-2 h-2 rounded-full bg-rose-400"></span> Pink
+              </button>
+              <button
+                onClick={() => setTheme('dark')}
+                className={`py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 ${
+                  colorTheme === 'dark' ? 'bg-slate-950 text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+                title="Night Dark Mode"
+              >
+                <Moon className="w-3 h-3 text-sky-400" /> Dark
+              </button>
+            </div>
+          </div>
 
           <div className="flex items-center justify-between px-2">
             <div className="min-w-0">
@@ -134,7 +150,7 @@ export const MainLayout: React.FC = () => {
               logout();
               navigate('/login');
             }}
-            className="w-full flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold transition-colors"
+            className="w-full flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold transition-colors"
           >
             <LogOut className="w-4 h-4" />
             <span>Logout</span>

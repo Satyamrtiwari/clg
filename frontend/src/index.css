@@ -2,6 +2,53 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --color-primary: #1b4998;
+  --color-primary-hover: #153a7b;
+  --color-primary-light: #eff6ff;
+  --color-primary-border: #bfdbfe;
+  --color-accent: #2563eb;
+  --color-accent-text: #1b4998;
+}
+
+[data-color-theme="pink"] {
+  --color-primary: #e11d48;
+  --color-primary-hover: #be123c;
+  --color-primary-light: #fff1f2;
+  --color-primary-border: #fecdd3;
+  --color-accent: #f43f5e;
+  --color-accent-text: #e11d48;
+}
+
+[data-color-theme="blue"] {
+  --color-primary: #1b4998;
+  --color-primary-hover: #153a7b;
+  --color-primary-light: #eff6ff;
+  --color-primary-border: #bfdbfe;
+  --color-accent: #2563eb;
+  --color-accent-text: #1b4998;
+}
+
+/* Dynamic theme overrides */
+.bg-rose-600 {
+  background-color: var(--color-primary) !important;
+}
+.hover\:bg-rose-700:hover, .hover\:bg-rose-600:hover {
+  background-color: var(--color-primary-hover) !important;
+}
+.text-rose-600, .text-rose-500, .text-rose-400 {
+  color: var(--color-accent-text) !important;
+}
+.border-rose-500, .border-rose-500\/30, .border-rose-500\/20, .border-rose-600 {
+  border-color: var(--color-primary-border) !important;
+}
+.bg-rose-500\/10, .bg-rose-600\/10, .bg-rose-500\/15 {
+  background-color: var(--color-primary-light) !important;
+}
+.shadow-rose-600\/30 {
+  box-shadow: 0 10px 15px -3px rgba(27, 73, 152, 0.3) !important;
+}
+
 @layer base {
   body {
     @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 font-sans transition-colors duration-200;
@@ -58,8 +105,4 @@
   background: rgba(255, 255, 255, 0.95);
   border-color: rgba(203, 213, 225, 1);
   transform: translateY(-2px);
-}
-.dark .glass-card-hover:hover {
-  background: rgba(30, 41, 59, 0.9);
-  border-color: rgba(255, 255, 255, 0.15);
 }

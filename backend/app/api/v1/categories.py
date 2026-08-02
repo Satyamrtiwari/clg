@@ -34,3 +34,12 @@ async def update_category(
     current_user: User = Depends(verify_menu_edit_permission)
 ):
     return await MenuService.update_category(db, category_id, cat_in)
+
+@router.delete("/{category_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_category(
+    category_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(verify_menu_edit_permission)
+):
+    await MenuService.delete_category(db, category_id)
+    return None

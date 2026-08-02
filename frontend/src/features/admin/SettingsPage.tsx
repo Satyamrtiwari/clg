@@ -3,7 +3,7 @@ import { settingsApi } from '@/services/api';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { QRCodeSVG } from 'qrcode.react';
-import { Save, CheckCircle2, Store, Percent, ShieldCheck, QrCode, Smartphone, Clock } from 'lucide-react';
+import { Save, CheckCircle2, Store, Percent, QrCode, Smartphone, Clock } from 'lucide-react';
 
 export const SettingsPage: React.FC = () => {
   const [canteenName, setCanteenName] = useState('Campus Smart Canteen');
@@ -11,7 +11,6 @@ export const SettingsPage: React.FC = () => {
   const [currencySymbol, setCurrencySymbol] = useState('₹');
   const [taxRate, setTaxRate] = useState('5.0');
   const [autoRemoveMins, setAutoRemoveMins] = useState('5');
-  const [canEditMenu, setCanEditMenu] = useState(true);
   const [customDomain, setCustomDomain] = useState('');
   const [qrIntervalSecs, setQrIntervalSecs] = useState('30');
   
@@ -31,7 +30,6 @@ export const SettingsPage: React.FC = () => {
         setTaxRate(cfg.tax_rate_percent.toString());
         setCanteenName(cfg.canteen_name);
         setCurrencySymbol(cfg.currency_symbol);
-        setCanEditMenu(cfg.cashier_can_edit_menu);
         if (cfg.qr_display_interval_seconds !== undefined) {
           setQrIntervalSecs(cfg.qr_display_interval_seconds.toString());
         }
@@ -44,21 +42,17 @@ export const SettingsPage: React.FC = () => {
     setLoading(true);
 
     try {
-      await settingsApi.updateSetting('canteen_name', { value: canteenName });
-      await settingsApi.updateSetting('canteen_tagline', { value: tagline });
-      await settingsApi.updateSetting('currency_symbol', { value: currencySymbol });
-      await settingsApi.updateSetting('tax_rate_percent', { value: parseFloat(taxRate) || 5.0 });
-      await settingsApi.updateSetting('auto_remove_minutes', { value: parseInt(autoRemoveMins) || 5 });
-      await settingsApi.updateSetting('qr_display_interval_seconds', { value: parseInt(qrIntervalSecs) ?? 30 });
-      await settingsApi.updateSetting('cashier_permissions', {
-        can_edit_menu: canEditMenu,
-        can_cancel_order: true,
-      });
+      await settingsApi.updateSetting('canteen_name', canteenName);
+      await settingsApi.updateSetting('canteen_tagline', tagline);
+      await settingsApi.updateSetting('currency_symbol', currencySymbol);
+      await settingsApi.updateSetting('tax_rate_percent', parseFloat(taxRate) || 5.0);
+      await settingsApi.updateSetting('auto_remove_minutes', parseInt(autoRemoveMins) || 5);
+      await settingsApi.updateSetting('qr_display_interval_seconds', parseInt(qrIntervalSecs) ?? 30);
 
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 3000);
-    } catch (err) {
-      alert('Failed to update settings');
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Failed to update settings');
     } finally {
       setLoading(false);
     }
@@ -70,7 +64,7 @@ export const SettingsPage: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white font-display">Settings</h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Configure your canteen. Nothing is hardcoded.</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Configure your canteen branding, tax rates, and QR display timers.</p>
         </div>
 
         <Button onClick={handleSaveSettings} isLoading={loading} size="lg" variant="primary" leftIcon={<Save className="w-4 h-4" />}>
@@ -95,7 +89,7 @@ export const SettingsPage: React.FC = () => {
             label="Canteen Name"
             value={canteenName}
             onChange={(e) => setCanteenName(e.target.value)}
-            placeholder="e.g. Campus Bites"
+            placeholder="e.g. Campus Smart Canteen"
           />
 
           <Input
@@ -164,31 +158,7 @@ export const SettingsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* SECTION 3: CASHIER PERMISSIONS */}
-      <div className="bg-white dark:bg-slate-900/80 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
-        <div className="flex items-center gap-2 text-rose-600 dark:text-rose-500 font-extrabold text-sm uppercase tracking-wider font-display">
-          <ShieldCheck className="w-5 h-5" /> Cashier Permissions
-        </div>
-
-        <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
-          <div className="space-y-0.5">
-            <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">Allow cashiers to edit menu</h4>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">When off, only owners manage the menu</p>
-          </div>
-
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={canEditMenu}
-              onChange={(e) => setCanEditMenu(e.target.checked)}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-slate-300 dark:bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-600"></div>
-          </label>
-        </div>
-      </div>
-
-      {/* SECTION 4: QR MENU POSTER GENERATOR */}
+      {/* SECTION 3: QR MENU POSTER GENERATOR */}
       <div className="bg-white dark:bg-slate-900/80 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
         <div className="flex items-center gap-2 text-rose-600 dark:text-rose-500 font-extrabold text-sm uppercase tracking-wider font-display">
           <QrCode className="w-5 h-5" /> Customer Digital Menu QR Poster (SaaS Ready)

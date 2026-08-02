@@ -5,7 +5,7 @@ import { MenuItem, Category } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
-import { Plus, Edit, Sparkles, FolderPlus, Clock, Calendar, Upload, Image as ImageIcon, CheckCircle2, AlertCircle, Trash2 } from 'lucide-react';
+import { Plus, Edit, Sparkles, FolderPlus, Clock, Calendar, Upload, Image as ImageIcon, CheckCircle2, AlertCircle, Trash2, Folder, AlertTriangle } from 'lucide-react';
 
 const DAYS_OF_WEEK = [
   { id: 'MONDAY', label: 'Mon' },
@@ -22,6 +22,13 @@ export const MenuManagementPage: React.FC = () => {
   const [isItemModalOpen, setIsItemModalOpen] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
+
+  // Custom Delete Confirmation Modal State
+  const [deleteTarget, setDeleteTarget] = useState<{
+    type: 'item' | 'category';
+    id: string;
+    name: string;
+  } | null>(null);
 
   // Form State
   const [name, setName] = useState('');
@@ -45,7 +52,7 @@ export const MenuManagementPage: React.FC = () => {
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [isSubmittingItem, setIsSubmittingItem] = useState(false);
   const [isSubmittingCat, setIsSubmittingCat] = useState(false);
-  const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -66,24 +73,44 @@ export const MenuManagementPage: React.FC = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['menu'] }),
   });
 
-  // Delete Menu Item Handler
-  const handleDeleteItem = async (itemId: string, itemName: string) => {
-    if (!window.confirm(`Are you sure you want to delete "${itemName}" from the menu?`)) {
-      return;
-    }
+  // Prompt Confirmation for Item or Category Delete
+  const triggerDeleteItemPrompt = (itemId: string, itemName: string) => {
+    setDeleteTarget({ type: 'item', id: itemId, name: itemName });
+  };
 
-    setDeletingItemId(itemId);
+  const triggerDeleteCategoryPrompt = (catId: string, catName: string) => {
+    setDeleteTarget({ type: 'category', id: catId, name: catName });
+  };
+
+  // Execute Confirmed Delete
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+
+    setIsDeleting(true);
     setActionError(null);
+
     try {
-      await menuApi.deleteMenuItem(itemId);
-      await queryClient.invalidateQueries({ queryKey: ['menu'] });
-      setIsItemModalOpen(false);
-      setActionSuccess(`"${itemName}" deleted successfully!`);
+      if (deleteTarget.type === 'item') {
+        await menuApi.deleteMenuItem(deleteTarget.id);
+        await queryClient.invalidateQueries({ queryKey: ['menu'] });
+        setIsItemModalOpen(false);
+        setActionSuccess(`"${deleteTarget.name}" deleted successfully!`);
+      } else {
+        await menuApi.deleteCategory(deleteTarget.id);
+        await queryClient.invalidateQueries({ queryKey: ['categories'] });
+        await queryClient.invalidateQueries({ queryKey: ['menu'] });
+        if (selectedCategoryId === deleteTarget.id) {
+          setSelectedCategoryId(null);
+        }
+        setActionSuccess(`Category "${deleteTarget.name}" deleted successfully!`);
+      }
+
+      setDeleteTarget(null);
       setTimeout(() => setActionSuccess(null), 4000);
     } catch (err: any) {
-      setActionError(err.response?.data?.detail || 'Failed to delete menu item');
+      setActionError(err.response?.data?.detail || `Failed to delete ${deleteTarget.type}`);
     } finally {
-      setDeletingItemId(null);
+      setIsDeleting(false);
     }
   };
 
@@ -98,7 +125,6 @@ export const MenuManagementPage: React.FC = () => {
     try {
       const res = await menuApi.uploadImage(file);
       if (res?.image_url) {
-        // Handle backend relative uploads path vs live production URL
         const envApiUrl = import.meta.env.VITE_API_BASE_URL;
         let fullUrl = res.image_url;
         if (fullUrl.startsWith('/') && envApiUrl && envApiUrl.startsWith('http')) {
@@ -116,7 +142,7 @@ export const MenuManagementPage: React.FC = () => {
     }
   };
 
-  const handleOpenItemModal = (item?: MenuItem) => {
+  const handleOpenItemModal = (item?: MenuItem, defaultCatId?: string) => {
     setActionError(null);
     if (item) {
       setEditingItem(item);
@@ -135,7 +161,8 @@ export const MenuManagementPage: React.FC = () => {
       setName('');
       setDescription('');
       setPrice('');
-      setCategoryId(categories[0]?.id || '');
+      const targetCatId = defaultCatId || selectedCategoryId || categories[0]?.id || '';
+      setCategoryId(targetCatId);
       setImageUrl('');
       setIsTodaysSpecial(false);
       setPrepTimeMinutes('10');
@@ -187,8 +214,6 @@ export const MenuManagementPage: React.FC = () => {
       }
 
       await queryClient.invalidateQueries({ queryKey: ['menu'] });
-      
-      // Close modal immediately on success
       setIsItemModalOpen(false);
       setTimeout(() => setActionSuccess(null), 4000);
     } catch (err: any) {
@@ -216,13 +241,11 @@ export const MenuManagementPage: React.FC = () => {
 
       await queryClient.invalidateQueries({ queryKey: ['categories'] });
       
-      // Auto select the new category for immediate use in menu creation
       if (newCat?.id) {
         setCategoryId(newCat.id);
         setSelectedCategoryId(newCat.id);
       }
 
-      // Close modal immediately on success
       setIsCategoryModalOpen(false);
       setCategoryName('');
       setCategoryDesc('');
@@ -254,7 +277,7 @@ export const MenuManagementPage: React.FC = () => {
 
         <div className="flex items-center gap-3">
           <Button onClick={() => { setActionError(null); setIsCategoryModalOpen(true); }} variant="ghost" size="md" leftIcon={<FolderPlus className="w-4 h-4" />}>
-            Add Category
+            Manage Categories
           </Button>
           <Button onClick={() => handleOpenItemModal()} variant="primary" size="md" leftIcon={<Plus className="w-4 h-4" />}>
             Add Menu Item
@@ -302,7 +325,7 @@ export const MenuManagementPage: React.FC = () => {
 
         {categories.length === 0 && !isLoadingCategories && (
           <span className="text-xs text-amber-600 dark:text-amber-400 font-semibold px-2">
-            No categories found. Click "Add Category" above to create one!
+            No categories found. Click "Manage Categories" above to create one!
           </span>
         )}
       </div>
@@ -366,8 +389,7 @@ export const MenuManagementPage: React.FC = () => {
                   </button>
 
                   <button
-                    onClick={() => handleDeleteItem(item.id, item.name)}
-                    disabled={deletingItemId === item.id}
+                    onClick={() => triggerDeleteItemPrompt(item.id, item.name)}
                     className="p-1.5 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-600 hover:text-white transition-colors"
                     title="Delete Item"
                   >
@@ -382,7 +404,7 @@ export const MenuManagementPage: React.FC = () => {
             <div className="col-span-full h-48 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl text-slate-400">
               <p className="text-sm font-semibold">No menu items in this category yet</p>
               <button
-                onClick={() => handleOpenItemModal()}
+                onClick={() => handleOpenItemModal(undefined, selectedCategoryId || undefined)}
                 className="mt-2 text-xs text-rose-600 dark:text-rose-400 font-bold hover:underline"
               >
                 + Add your first menu item
@@ -418,11 +440,6 @@ export const MenuManagementPage: React.FC = () => {
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
-              {categories.length === 0 && (
-                <p className="text-[11px] text-amber-600 dark:text-amber-400 font-bold">
-                  ⚠️ Create a category first! Click "Add Category" button.
-                </p>
-              )}
             </div>
           </div>
 
@@ -433,7 +450,6 @@ export const MenuManagementPage: React.FC = () => {
             </label>
 
             <div className="flex flex-col sm:flex-row items-center gap-3">
-              {/* File Upload Button */}
               <label className="cursor-pointer shrink-0 w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center justify-center gap-2">
                 <Upload className="w-4 h-4 text-rose-500" />
                 <span>{uploadingImage ? 'Uploading Image...' : 'Choose Image File'}</span>
@@ -449,7 +465,6 @@ export const MenuManagementPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Uploaded Image Preview */}
             {imageUrl && (
               <div className="flex items-center gap-3 p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl">
                 <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 border border-slate-300 dark:border-slate-700">
@@ -470,63 +485,11 @@ export const MenuManagementPage: React.FC = () => {
             )}
           </div>
 
-          {/* Day Availability Section (Optional) */}
-          <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5 text-rose-500" /> Day Availability (Optional)
-            </label>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">Leave unselected to make available every day</p>
-            <div className="flex flex-wrap gap-1.5">
-              {DAYS_OF_WEEK.map((d) => {
-                const isSelected = selectedDays.includes(d.id);
-                return (
-                  <button
-                    key={d.id}
-                    type="button"
-                    onClick={() => toggleDaySelection(d.id)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-                      isSelected
-                        ? 'bg-rose-600 text-white shadow-sm'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
-                    }`}
-                  >
-                    {d.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Time Schedule Section (Optional) */}
-          <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5 text-amber-500" /> Time Schedule (Optional)
-            </label>
-            <div className="grid grid-cols-2 gap-4">
-              <Input label="Start Time (e.g. 08:00)" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
-              <Input label="End Time (e.g. 11:00)" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 pt-2">
-            <input
-              type="checkbox"
-              id="is_special"
-              checked={isTodaysSpecial}
-              onChange={(e) => setIsTodaysSpecial(e.target.checked)}
-              className="w-4 h-4 accent-rose-600 rounded"
-            />
-            <label htmlFor="is_special" className="text-xs font-semibold text-slate-900 dark:text-slate-100 cursor-pointer">
-              Mark as Today's Special
-            </label>
-          </div>
-
           <div className="flex items-center gap-3 pt-2">
             {editingItem && (
               <button
                 type="button"
-                onClick={() => handleDeleteItem(editingItem.id, editingItem.name)}
-                disabled={deletingItemId === editingItem.id}
+                onClick={() => triggerDeleteItemPrompt(editingItem.id, editingItem.name)}
                 className="px-4 py-3 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 font-bold text-sm hover:bg-rose-600 hover:text-white transition-colors flex items-center gap-2 border border-rose-500/30"
               >
                 <Trash2 className="w-4 h-4" /> Delete Item
@@ -540,20 +503,101 @@ export const MenuManagementPage: React.FC = () => {
         </form>
       </Modal>
 
-      {/* ADD CATEGORY MODAL */}
+      {/* MANAGE & ADD CATEGORY MODAL */}
       <Modal
         isOpen={isCategoryModalOpen}
         onClose={() => setIsCategoryModalOpen(false)}
-        title="Add New Category"
+        title="Manage Categories"
+        maxWidth="md"
+      >
+        <div className="space-y-6">
+          <form onSubmit={handleSaveCategory} className="space-y-4 pb-6 border-b border-slate-200 dark:border-slate-800">
+            <h4 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 font-display flex items-center gap-1.5">
+              <FolderPlus className="w-4 h-4 text-rose-500" /> Create New Category
+            </h4>
+            <Input label="Category Name *" value={categoryName} onChange={(e) => setCategoryName(e.target.value)} placeholder="e.g. Beverages, Snacks, Italian" required />
+            <Input label="Description" value={categoryDesc} onChange={(e) => setCategoryDesc(e.target.value)} placeholder="e.g. Pizzas, Pastas & Garlic Bread" />
+            <Button type="submit" size="lg" className="w-full" isLoading={isSubmittingCat}>
+              Create Category
+            </Button>
+          </form>
+
+          <div className="space-y-3">
+            <h4 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 font-display flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <Folder className="w-4 h-4 text-amber-500" /> Existing Categories
+              </span>
+              <span className="text-xs font-semibold text-slate-500">{categories.length} total</span>
+            </h4>
+
+            <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-56 overflow-y-auto pr-1">
+              {categories.map((cat) => (
+                <div key={cat.id} className="py-2.5 flex items-center justify-between">
+                  <div>
+                    <h5 className="text-sm font-bold text-slate-900 dark:text-slate-100">{cat.name}</h5>
+                    {cat.description && <p className="text-xs text-slate-500 dark:text-slate-400">{cat.description}</p>}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => triggerDeleteCategoryPrompt(cat.id, cat.name)}
+                    className="px-3 py-1.5 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-600 hover:text-white transition-colors text-xs font-bold flex items-center gap-1 border border-rose-500/20"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* IN-APP CUSTOM DELETE CONFIRMATION MODAL */}
+      <Modal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        title="Confirm Deletion"
         maxWidth="sm"
       >
-        <form onSubmit={handleSaveCategory} className="space-y-4">
-          <Input label="Category Name *" value={categoryName} onChange={(e) => setCategoryName(e.target.value)} placeholder="e.g. Beverages, Snacks, South Indian" required />
-          <Input label="Description" value={categoryDesc} onChange={(e) => setCategoryDesc(e.target.value)} placeholder="e.g. Hot & cold drinks" />
-          <Button type="submit" size="lg" className="w-full" isLoading={isSubmittingCat}>
-            Create Category
-          </Button>
-        </form>
+        <div className="space-y-4 text-center py-2">
+          <div className="w-12 h-12 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto">
+            <AlertTriangle className="w-6 h-6" />
+          </div>
+
+          <div className="space-y-1">
+            <h3 className="text-base font-extrabold text-slate-900 dark:text-white font-display">
+              Delete {deleteTarget?.type === 'item' ? 'Menu Item' : 'Category'}?
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              Are you sure you want to delete <strong className="text-slate-900 dark:text-white">"{deleteTarget?.name}"</strong>?
+              {deleteTarget?.type === 'category' && ' All menu items in this category will also be removed.'} This action cannot be undone.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 pt-4">
+            <Button
+              type="button"
+              variant="ghost"
+              size="lg"
+              className="flex-1"
+              onClick={() => setDeleteTarget(null)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              size="lg"
+              className="flex-1 !bg-rose-600 hover:!bg-rose-700 !text-white"
+              onClick={handleConfirmDelete}
+              isLoading={isDeleting}
+            >
+              Yes, Delete
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );
