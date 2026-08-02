@@ -12,7 +12,7 @@ export const CustomerDisplayPage: React.FC = () => {
   const [autoRemoveSeconds, setAutoRemoveSeconds] = useState(300); // 5 minutes
   const [canteenName, setCanteenName] = useState('Campus Smart Canteen');
   const [customDomain, setCustomDomain] = useState('');
-  
+
   // Dynamic QR Code auto-popup settings from Admin
   const [qrIntervalSecs, setQrIntervalSecs] = useState<number>(30);
   const [showQRPopup, setShowQRPopup] = useState(false);
@@ -32,17 +32,17 @@ export const CustomerDisplayPage: React.FC = () => {
       const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
-      
+
       osc.type = 'sine';
       osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
       osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.15); // A5
-      
+
       gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
 
       osc.connect(gain);
       gain.connect(audioCtx.destination);
-      
+
       osc.start();
       osc.stop(audioCtx.currentTime + 0.5);
     } catch (e) {
@@ -126,7 +126,7 @@ export const CustomerDisplayPage: React.FC = () => {
 
   // Filter PREPARING orders
   const preparingOrders = displayOrders.filter((o) => o.status === 'PREPARING');
-  
+
   // Filter READY orders ("Please Collect")
   const now = new Date().getTime();
   const readyOrders = displayOrders.filter((o) => {
@@ -364,7 +364,7 @@ export const CustomerDisplayPage: React.FC = () => {
 
       {/* Ticker Footer */}
       <footer className="px-8 py-3 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 text-center text-xs font-semibold text-slate-600 dark:text-slate-400 flex justify-between items-center z-20">
-        <span>⚡ Real-Time WebSocket Connected</span>
+        <span>🎓 Menorted By Kamal Shah & Romereo  D'Souza!!</span>
         <span>Orders automatically clear after pickup • Enjoy your meal!</span>
       </footer>
     </div>
