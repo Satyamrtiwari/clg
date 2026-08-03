@@ -34,19 +34,19 @@ export const QRMenuPage: React.FC = () => {
       }),
   });
 
-  // Group items by meal time slots or category carousels
-  const morningItems = menuItems.filter((i) => {
+  // Group items by meal time slots
+  const breakfastItems = menuItems.filter((i) => {
     if (!i.available_start_time) return true;
-    return i.available_start_time <= '12:00';
+    return i.available_start_time <= '11:00';
   });
 
-  const afternoonItems = menuItems.filter((i) => {
+  const lunchItems = menuItems.filter((i) => {
     if (!i.available_end_time) return true;
-    return i.available_end_time >= '12:00' && i.available_end_time <= '17:00';
+    return (i.available_start_time || '00:00') <= '15:00' && (i.available_end_time || '23:59') >= '12:00';
   });
 
-  const eveningItems = menuItems.filter((i) => {
-    return i.is_todays_special || i.price <= 50 || (i.category?.name || '').toLowerCase().includes('snack') || (i.category?.name || '').toLowerCase().includes('beverage');
+  const eveningSnacksItems = menuItems.filter((i) => {
+    return i.is_todays_special || i.price <= 60 || (i.category?.name || '').toLowerCase().includes('snack') || (i.category?.name || '').toLowerCase().includes('beverage') || (i.category?.name || '').toLowerCase().includes('sweet');
   });
 
   const renderItemCard = (item: MenuItem) => (
@@ -189,68 +189,68 @@ export const QRMenuPage: React.FC = () => {
         ) : (
           /* VERTICAL MEAL TIME SECTIONS WITH HORIZONTAL CAROUSELS */
           <div className="space-y-6">
-            {/* SECTION 1: MORNING ITEMS (8am - 12pm) */}
-            {morningItems.length > 0 && (
+            {/* SECTION 1: Breakfast (8am - 11am) */}
+            {breakfastItems.length > 0 && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Coffee className="w-4 h-4 text-amber-500" />
-                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-white font-display">Morning Items</h3>
+                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-white font-display">Breakfast</h3>
                   </div>
                   <div className="flex items-center gap-1.5 text-xs">
                     <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> 8am - 12pm
+                      <Clock className="w-3 h-3" /> 8am - 11am
                     </span>
                     <ChevronRight className="w-4 h-4 text-slate-400" />
                   </div>
                 </div>
 
                 <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
-                  {morningItems.map((item) => renderItemCard(item))}
+                  {breakfastItems.map((item) => renderItemCard(item))}
                 </div>
               </div>
             )}
 
-            {/* SECTION 2: AFTERNOON ITEMS (12pm - 5pm) */}
-            {afternoonItems.length > 0 && (
+            {/* SECTION 2: Lunch (12pm - 3pm) */}
+            {lunchItems.length > 0 && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <UtensilsCrossed className="w-4 h-4 text-blue-600" />
-                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-white font-display">Afternoon Items</h3>
+                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-white font-display">Lunch</h3>
                   </div>
                   <div className="flex items-center gap-1.5 text-xs">
                     <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> 12pm - 5pm
+                      <Clock className="w-3 h-3" /> 12pm - 3pm
                     </span>
                     <ChevronRight className="w-4 h-4 text-slate-400" />
                   </div>
                 </div>
 
                 <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
-                  {afternoonItems.map((item) => renderItemCard(item))}
+                  {lunchItems.map((item) => renderItemCard(item))}
                 </div>
               </div>
             )}
 
-            {/* SECTION 3: EVENING SNACKS & ALL DAY */}
-            {eveningItems.length > 0 && (
+            {/* SECTION 3: Evening Snacks (3pm - 6pm) */}
+            {eveningSnacksItems.length > 0 && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-rose-500" />
-                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-white font-display">Evening Snacks & Drinks</h3>
+                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-white font-display">Evening Snacks</h3>
                   </div>
                   <div className="flex items-center gap-1.5 text-xs">
                     <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> 5pm - 9pm
+                      <Clock className="w-3 h-3" /> 3pm - 6pm
                     </span>
                     <ChevronRight className="w-4 h-4 text-slate-400" />
                   </div>
                 </div>
 
                 <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
-                  {eveningItems.map((item) => renderItemCard(item))}
+                  {eveningSnacksItems.map((item) => renderItemCard(item))}
                 </div>
               </div>
             )}
