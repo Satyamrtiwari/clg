@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, date, timezone
 from typing import List, Optional
 from sqlalchemy import select, desc
@@ -9,6 +10,76 @@ from app.models.menu import MenuItem
 from app.schemas.order import OrderCreate, OrderStatusUpdate
 from app.utils.order_number import generate_daily_order_number
 from app.core.ws_manager import ws_manager
+from app.core.database import AsyncSessionLocal
+
+async def auto_progress_order(order_id: str, prep_mins: int):
+    """
+    Automated Model A:
+    1. Waits for prep_mins (calculated via MAX(items.prep_time_minutes)).
+    2. Automatically transitions order status from PREPARING -> READY ("PLEASE COLLECT") & broadcasts WebSocket chime.
+    3. Waits 4 minutes for pickup -> Automatically transitions READY -> COMPLETED & clears from TV display.
+    """
+    # 1. Preparation Delay: Convert minutes to seconds (minimum 15 seconds for instant items)
+    prep_delay_seconds = max(15, prep_mins * 60)
+    await asyncio.sleep(prep_delay_seconds)
+
+    # 2. Transition PREPARING -> READY
+    try:
+        async with AsyncSessionLocal() as db:
+            stmt = select(Order).where(Order.id == order_id)
+            res = await db.execute(stmt)
+            order = res.unique().scalar_one_or_none()
+            if order and order.status == OrderStatus.PREPARING:
+                order.status = OrderStatus.READY
+                order.completed_at = datetime.now(timezone.utc)
+                await db.commit()
+
+                status_str = "READY"
+                ws_event = {
+                    "event": "ORDER_UPDATED",
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "data": {
+                        "id": order.id,
+                        "daily_order_number": order.daily_order_number,
+                        "customer_name": order.customer_name,
+                        "status": status_str,
+                        "play_chime": True,
+                        "updated_at": order.completed_at.isoformat(),
+                    }
+                }
+                await ws_manager.broadcast(ws_event, channel="all")
+    except Exception as e:
+        print(f"[AutoProgress] Error transitioning order {order_id} to READY: {e}")
+        return
+
+    # 3. Pickup Delay: 4 minutes (240s) before marking COMPLETED
+    pickup_delay_seconds = 240
+    await asyncio.sleep(pickup_delay_seconds)
+
+    try:
+        async with AsyncSessionLocal() as db:
+            stmt = select(Order).where(Order.id == order_id)
+            res = await db.execute(stmt)
+            order = res.unique().scalar_one_or_none()
+            if order and order.status == OrderStatus.READY:
+                order.status = OrderStatus.COMPLETED
+                await db.commit()
+
+                status_str = "COMPLETED"
+                ws_event = {
+                    "event": "ORDER_UPDATED",
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "data": {
+                        "id": order.id,
+                        "daily_order_number": order.daily_order_number,
+                        "customer_name": order.customer_name,
+                        "status": status_str,
+                        "updated_at": datetime.now(timezone.utc).isoformat(),
+                    }
+                }
+                await ws_manager.broadcast(ws_event, channel="all")
+    except Exception as e:
+        print(f"[AutoProgress] Error transitioning order {order_id} to COMPLETED: {e}")
 
 class OrderService:
     @staticmethod
@@ -16,7 +87,7 @@ class OrderService:
         # 1. Generate Daily Order Number
         daily_num = await generate_daily_order_number(db)
         
-        # 2. Fetch Menu Items and Calculate Subtotal
+        # 2. Fetch Menu Items and Calculate Subtotal & Max Prep Time
         item_ids = [item.menu_item_id for item in order_in.items]
         stmt = select(MenuItem).where(MenuItem.id.in_(item_ids))
         res = await db.execute(stmt)
@@ -24,6 +95,7 @@ class OrderService:
         
         subtotal = 0.0
         order_items = []
+        prep_times = []
 
         for item_in in order_in.items:
             menu_item = menu_items_map.get(item_in.menu_item_id)
@@ -41,6 +113,7 @@ class OrderService:
             unit_price = float(menu_item.price)
             line_total = unit_price * item_in.quantity
             subtotal += line_total
+            prep_times.append(getattr(menu_item, 'prep_time_minutes', 5) or 5)
 
             order_items.append(
                 OrderItem(
@@ -52,6 +125,9 @@ class OrderService:
                     notes=item_in.notes
                 )
             )
+
+        # Calculate MAX prep time for the entire order
+        max_prep_mins = max(prep_times, default=5)
 
         # 3. Calculate Tax & Total
         tax_amount = round(subtotal * 0.05, 2)
@@ -67,7 +143,7 @@ class OrderService:
         order = Order(
             daily_order_number=daily_num,
             order_date=today_date,
-            customer_name=order_in.customer_name.strip(),
+            customer_name=order_in.customer_name.strip() if order_in.customer_name else 'Counter Customer',
             status=OrderStatus.PREPARING,
             subtotal=subtotal,
             tax_amount=tax_amount,
@@ -106,10 +182,14 @@ class OrderService:
                 "status": status_str,
                 "created_at": order.created_at.isoformat(),
                 "items_count": len(order.items),
-                "total_amount": float(order.total_amount)
+                "total_amount": float(order.total_amount),
+                "max_prep_mins": max_prep_mins
             }
         }
         await ws_manager.broadcast(ws_event, channel="all")
+
+        # 6. Launch Automated Model A Background Timer Task
+        asyncio.create_task(auto_progress_order(order.id, max_prep_mins))
 
         return order
 

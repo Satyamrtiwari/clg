@@ -10,6 +10,7 @@ export const TenantQRMenuPage: React.FC = () => {
   const { canteenSlug } = useParams<{ canteenSlug?: string }>();
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [vegFilter, setVegFilter] = useState<'ALL' | 'VEG' | 'NON_VEG'>('ALL');
   const { theme, toggleTheme } = useThemeStore();
 
   // Fetch Public Config Settings
@@ -27,13 +28,20 @@ export const TenantQRMenuPage: React.FC = () => {
   });
 
   // Menu Items
-  const { data: menuItems = [], isLoading } = useQuery({
+  const { data: menuItemsRaw = [], isLoading } = useQuery({
     queryKey: ['menu', selectedCategoryId, searchQuery],
     queryFn: () =>
       menuApi.getMenuItems({
         category_id: selectedCategoryId || undefined,
         search: searchQuery || undefined,
       }),
+  });
+
+  // Apply Veg / Non-Veg Filtering
+  const menuItems = menuItemsRaw.filter((i) => {
+    if (vegFilter === 'VEG') return i.is_veg !== false;
+    if (vegFilter === 'NON_VEG') return i.is_veg === false;
+    return true;
   });
 
   // Group items by meal time slots
@@ -55,11 +63,11 @@ export const TenantQRMenuPage: React.FC = () => {
     <div
       key={item.id}
       className={`w-40 shrink-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 rounded-2xl shadow-sm flex flex-col justify-between space-y-2.5 transition-all ${
-        !item.is_available ? 'opacity-50 grayscale' : ''
+        !item.is_available ? 'opacity-40 grayscale' : ''
       }`}
     >
       <div className="space-y-2">
-        {/* Photo Box */}
+        {/* Photo Box with Top-Left FSSAI Logo & Top-Right Special Tag */}
         <div className="h-24 w-full rounded-xl bg-slate-100 dark:bg-slate-800 overflow-hidden relative border border-slate-200 dark:border-slate-700/50">
           {item.image_url ? (
             <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
@@ -68,21 +76,42 @@ export const TenantQRMenuPage: React.FC = () => {
               {item.name.substring(0, 2).toUpperCase()}
             </div>
           )}
+
+          {/* TOP-LEFT: OFFICIAL FSSAI VEG/NON-VEG LOGO */}
+          <div className="absolute top-1.5 left-1.5 flex items-center gap-1 z-20">
+            <div
+              className={`w-3.5 h-3.5 rounded-sm border-2 ${
+                item.is_veg !== false ? 'border-emerald-600' : 'border-rose-600'
+              } bg-white dark:bg-slate-900 flex items-center justify-center p-0.5 shadow`}
+              title={item.is_veg !== false ? 'Pure Veg' : 'Non-Veg'}
+            >
+              <div className={`w-1.5 h-1.5 rounded-full ${item.is_veg !== false ? 'bg-emerald-600' : 'bg-rose-600'}`} />
+            </div>
+          </div>
+
+          {/* TOP-RIGHT: TODAY'S SPECIAL BADGE */}
           {item.is_todays_special && (
-            <span className="absolute top-1.5 right-1.5 bg-amber-500 text-slate-950 font-bold text-[9px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shadow">
+            <span className="absolute top-1.5 right-1.5 bg-amber-500 text-slate-950 font-black text-[9px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shadow z-20">
               <Sparkles className="w-2.5 h-2.5" /> Special
             </span>
           )}
+
+          {/* UNAVAILABLE / SOLD OUT OVERLAY BLUR */}
+          {!item.is_available && (
+            <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-[1px] flex items-center justify-center text-rose-400 font-black text-[10px] uppercase tracking-wider z-20">
+              Sold Out
+            </div>
+          )}
         </div>
 
-        {/* Name */}
+        {/* Name & Description */}
         <div>
           <h4 className="font-bold text-xs text-slate-900 dark:text-slate-100 line-clamp-1">{item.name}</h4>
           <p className="text-[10px] text-slate-400 dark:text-slate-500 line-clamp-1">{item.description || 'Freshly prepared'}</p>
         </div>
       </div>
 
-      {/* Price & Qty / Status */}
+      {/* Price & Availability Status */}
       <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
         <span className="font-extrabold text-xs text-blue-700 dark:text-blue-400 font-display">₹{item.price}</span>
         <span
@@ -125,7 +154,7 @@ export const TenantQRMenuPage: React.FC = () => {
         </div>
       </header>
 
-      <div className="max-w-md mx-auto px-4 pt-4 space-y-6">
+      <div className="max-w-md mx-auto px-4 pt-4 space-y-5">
         {/* 2. SEARCH BAR */}
         <div className="relative">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
@@ -138,7 +167,49 @@ export const TenantQRMenuPage: React.FC = () => {
           />
         </div>
 
-        {/* 3. CATEGORY CHIPS ROW (Horizontal Scroll ↔️) */}
+        {/* 3. DIETARY VEG / NON-VEG FSSAI QUICK FILTERS */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setVegFilter('ALL')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all border ${
+              vegFilter === 'ALL'
+                ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white shadow-sm'
+                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800'
+            }`}
+          >
+            All Items
+          </button>
+
+          <button
+            onClick={() => setVegFilter(vegFilter === 'VEG' ? 'ALL' : 'VEG')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 border ${
+              vegFilter === 'VEG'
+                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500 shadow-sm'
+                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800'
+            }`}
+          >
+            <div className="w-3.5 h-3.5 rounded-sm border-2 border-emerald-600 bg-white dark:bg-slate-900 flex items-center justify-center p-0.5 shrink-0">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+            </div>
+            <span>Veg Only</span>
+          </button>
+
+          <button
+            onClick={() => setVegFilter(vegFilter === 'NON_VEG' ? 'ALL' : 'NON_VEG')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 border ${
+              vegFilter === 'NON_VEG'
+                ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500 shadow-sm'
+                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800'
+            }`}
+          >
+            <div className="w-3.5 h-3.5 rounded-sm border-2 border-rose-600 bg-white dark:bg-slate-900 flex items-center justify-center p-0.5 shrink-0">
+              <div className="w-1.5 h-1.5 rounded-full bg-rose-600" />
+            </div>
+            <span>Non-Veg</span>
+          </button>
+        </div>
+
+        {/* 4. CATEGORY CHIPS ROW (Horizontal Scroll ↔️) */}
         <div className="relative">
           <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none pr-6">
             <button
@@ -149,7 +220,7 @@ export const TenantQRMenuPage: React.FC = () => {
                   : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800'
               }`}
             >
-              All Items
+              All Categories
             </button>
             {categories.map((cat) => (
               <button
@@ -173,11 +244,16 @@ export const TenantQRMenuPage: React.FC = () => {
         {/* MAIN MEAL SECTIONS OR FILTERED GRID */}
         {isLoading ? (
           <div className="py-16 text-center text-slate-400 text-xs">Loading Menu...</div>
-        ) : searchQuery || selectedCategoryId ? (
+        ) : searchQuery || selectedCategoryId || vegFilter !== 'ALL' ? (
           /* FILTERED / SEARCHED GRID VIEW */
           <div className="space-y-3">
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              {searchQuery ? `Search Results for "${searchQuery}"` : 'Category Items'} ({menuItems.length})
+              {searchQuery
+                ? `Search Results for "${searchQuery}"`
+                : vegFilter !== 'ALL'
+                ? `${vegFilter === 'VEG' ? 'Vegetarian' : 'Non-Vegetarian'} Items`
+                : 'Category Items'}{' '}
+              ({menuItems.length})
             </h3>
 
             {menuItems.length === 0 ? (

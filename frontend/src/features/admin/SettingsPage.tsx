@@ -26,10 +26,10 @@ export const SettingsPage: React.FC = () => {
   useEffect(() => {
     settingsApi.getConfig().then((cfg) => {
       if (cfg) {
-        setAutoRemoveMins(cfg.auto_remove_minutes.toString());
-        setTaxRate(cfg.tax_rate_percent.toString());
-        setCanteenName(cfg.canteen_name);
-        setCurrencySymbol(cfg.currency_symbol);
+        if (cfg.auto_remove_minutes !== undefined) setAutoRemoveMins(cfg.auto_remove_minutes.toString());
+        if (cfg.tax_rate_percent !== undefined) setTaxRate(cfg.tax_rate_percent.toString());
+        if (cfg.canteen_name) setCanteenName(cfg.canteen_name);
+        if (cfg.currency_symbol) setCurrencySymbol(cfg.currency_symbol);
         if (cfg.qr_display_interval_seconds !== undefined) {
           setQrIntervalSecs(cfg.qr_display_interval_seconds.toString());
         }

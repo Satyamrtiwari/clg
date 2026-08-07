@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy import inspect, text
 
 from app.core.config import settings
 from app.core.database import engine, Base, AsyncSessionLocal
@@ -12,9 +13,20 @@ from app.utils.seed_data import seed_initial_data
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 1. Startup: Create tables if not existing
+    # 1. Startup: Create tables if not existing & add missing columns dynamically
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        
+        def migrate_sqlite_schema(connection):
+            try:
+                inspector = inspect(connection)
+                columns = [c['name'] for c in inspector.get_columns('menu_items')]
+                if 'is_veg' not in columns:
+                    connection.execute(text("ALTER TABLE menu_items ADD COLUMN is_veg BOOLEAN DEFAULT 1"))
+            except Exception as e:
+                print(f"[Database Migration] Schema migration note: {e}")
+
+        await conn.run_sync(migrate_sqlite_schema)
     
     # 2. Seed initial data
     async with AsyncSessionLocal() as db:

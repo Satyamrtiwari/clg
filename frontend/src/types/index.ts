@@ -33,6 +33,7 @@ export interface MenuItem {
   image_url?: string;
   is_available: boolean;
   is_todays_special: boolean;
+  is_veg?: boolean;
   prep_time_minutes: number;
   available_days?: string[];
   available_start_time?: string;
@@ -68,31 +69,31 @@ export interface Order {
   payment_method: PaymentMethod;
   cashier_id?: string;
   completed_at?: string;
-  items: OrderItem[];
   created_at: string;
   updated_at: string;
+  items: OrderItem[];
 }
 
 export interface SystemConfig {
-  canteen_name: string;
-  canteen_tagline: string;
-  currency_symbol: string;
-  tax_rate_percent: number;
-  auto_remove_minutes: number;
-  cashier_can_edit_menu: boolean;
-  qr_display_interval_seconds: number;
+  canteen_name?: string;
+  canteen_tagline?: string;
+  currency_symbol?: string;
+  tax_rate_percent?: number;
+  cashier_can_edit_menu?: boolean;
+  auto_remove_minutes?: number;
+  qr_display_interval_seconds?: number;
+  [key: string]: any;
 }
 
 export interface AnalyticsDashboard {
-  today_revenue: number;
-  today_orders_count: number;
-  completed_orders_count: number;
-  cancelled_orders_count: number;
-  active_queue_count: number;
-  average_order_value: number;
-  top_items: Array<{
-    item_name: string;
-    total_quantity: number;
-    total_revenue: number;
-  }>;
+  today_revenue?: number;
+  today_sales?: number;
+  today_orders_count?: number;
+  pending_orders_count?: number;
+  completed_orders_count?: number;
+  active_queue_count?: number;
+  average_order_value?: number;
+  top_items?: Array<{ name: string; total_quantity: number; total_revenue: number }>;
+  sales_trend?: Array<{ date: string; sales: number; orders: number }>;
+  [key: string]: any;
 }

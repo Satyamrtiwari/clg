@@ -36,7 +36,8 @@ class MenuItem(Base):
     image_url: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     is_available: Mapped[bool] = mapped_column(Boolean, default=True)
     is_todays_special: Mapped[bool] = mapped_column(Boolean, default=False)
-    prep_time_minutes: Mapped[int] = mapped_column(default=10)
+    is_veg: Mapped[bool] = mapped_column(Boolean, default=True)
+    prep_time_minutes: Mapped[int] = mapped_column(default=5)
 
     # Optional Day-wise & Time Schedule Availability
     available_days: Mapped[List[str]] = mapped_column(JSON, default=list) # e.g. ["MONDAY", "TUESDAY"] or empty for all
